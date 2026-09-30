@@ -1,0 +1,66 @@
+name: Build Mesa grate packages
+
+on:
+  push:
+    paths:
+      - .github/workflows/build.yml
+      - .github/build-debian.sh
+      - mesa-grate.patch
+  pull_request:
+    paths:
+      - .github/workflows/build.yml
+      - .github/build-debian.sh
+      - mesa-grate.patch
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  MESA_REF: a995eaeda4339adb0278b06dcc98136011feac36
+  DEBIAN_PACKAGING_REPOSITORY: https://salsa.debian.org/xorg-team/lib/mesa.git
+
+jobs:
+  build:
+    name: Debian ${{ matrix.release }} armhf
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - release: bookworm
+            packaging_branch: debian-bookworm
+          - release: trixie
+            packaging_branch: debian-trixie
+
+    steps:
+      - name: Check out this repository
+        uses: actions/checkout@v4
+
+      - name: Enable armhf containers
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm
+
+      - name: Build Debian packages
+        env:
+          DEBIAN_RELEASE: ${{ matrix.release }}
+          DEBIAN_PACKAGING_BRANCH: ${{ matrix.packaging_branch }}
+        run: |
+          mkdir -p "artifacts/${DEBIAN_RELEASE}"
+          docker run --rm --platform linux/arm/v7 \
+            --env DEBIAN_RELEASE \
+            --env DEBIAN_PACKAGING_BRANCH \
+            --env MESA_REF \
+            --env DEBIAN_PACKAGING_REPOSITORY \
+            --volume "${GITHUB_WORKSPACE}:/src" \
+            "debian:${DEBIAN_RELEASE}-slim" \
+            bash /src/.github/build-debian.sh
+
+      - name: Upload Debian packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: mesa-grate-${{ matrix.release }}-armhf
+          path: artifacts/${{ matrix.release }}
+          if-no-files-found: error
+          retention-days: 14
