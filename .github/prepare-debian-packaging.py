@@ -52,6 +52,31 @@ def require_gallium(path: Path) -> None:
     path.write_text("\n\n".join(paragraphs) + "\n")
 
 
+def update_trixie_symbols() -> None:
+    # Mesa 26.3's GLVND vendor library no longer exports the OpenGL entrypoints
+    # listed by Trixie's older GLX symbols file. Keep its four vendor exports.
+    glx = Path("debian/libglx-mesa0.symbols")
+    lines = glx.read_text().splitlines()
+    old_gl_entries = [line for line in lines if line.startswith(" gl")]
+    if len(old_gl_entries) < 1000 or len(lines) - len(old_gl_entries) != 5:
+        raise RuntimeError("unexpected Trixie GLX symbols layout")
+    glx.write_text("\n".join(line for line in lines if not line.startswith(" gl")) + "\n")
+
+    # These three EGL interop entrypoints are present in the Mesa 26.3 build.
+    egl = Path("debian/libegl-mesa0.symbols")
+    old = "libEGL_mesa.so.0 libegl-mesa0 #MINVER#\n __egl_Main@Base 17.0.0~\n"
+    new = (
+        "libEGL_mesa.so.0 libegl-mesa0 #MINVER#\n"
+        " MesaGLInteropEGLExportObject@Base 26.3.0+grate1\n"
+        " MesaGLInteropEGLFlushObjects@Base 26.3.0+grate1\n"
+        " MesaGLInteropEGLQueryDeviceInfo@Base 26.3.0+grate1\n"
+        " __egl_Main@Base 17.0.0~\n"
+    )
+    if egl.read_text() != old:
+        raise RuntimeError("unexpected Trixie EGL symbols layout")
+    egl.write_text(new)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("release", choices=("bookworm", "trixie"))
@@ -132,6 +157,8 @@ def main() -> None:
     append_install(Path("debian/libgbm-dev.install"), "usr/include/gbm_backend_abi.h")
     if release == "bookworm":
         append_install(Path("debian/libgbm1.install"), "usr/lib/*/gbm/dri_gbm.so")
+    else:
+        update_trixie_symbols()
 
 
 if __name__ == "__main__":

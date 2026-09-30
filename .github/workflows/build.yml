@@ -30,8 +30,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - release: bookworm
-            packaging_branch: debian-bookworm
           - release: trixie
             packaging_branch: debian-trixie
 
