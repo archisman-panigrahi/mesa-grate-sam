@@ -65,6 +65,8 @@ sed -i '/^empty:=/i VULKAN_LAYERS =' debian/rules
 sed -i '/^empty:=/i VULKAN_DRIVERS =' debian/rules
 sed -i '/^empty:=/i GALLIUM_DRIVERS = grate llvmpipe softpipe' debian/rules
 
+python3 /src/.github/prepare-debian-packaging.py "$DEBIAN_RELEASE"
+
 dch --distribution "$DEBIAN_RELEASE" \
   --newversion "26.3.0+grate1-1~${DEBIAN_RELEASE}1" \
   "Build Mesa with the Surface RT grate driver."
@@ -72,6 +74,11 @@ dch --distribution "$DEBIAN_RELEASE" \
 mk-build-deps --install --remove \
   --tool 'apt-get --yes --no-install-recommends' debian/control
 dpkg-buildpackage -us -uc -b -j2
+
+# A successful compile without the Tegra DRI alias would produce packages
+# that cannot load grate on Surface RT.
+dpkg-deb --contents /build/libgl1-mesa-dri_*.deb | grep '/tegra_dri\.so'
+dpkg-deb --contents /build/mesa-libgallium_*.deb | grep '/libgallium-.*\.so'
 
 mkdir -p "/src/artifacts/${DEBIAN_RELEASE}"
 cp -v /build/*.deb "/src/artifacts/${DEBIAN_RELEASE}/"

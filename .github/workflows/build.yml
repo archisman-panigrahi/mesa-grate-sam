@@ -5,11 +5,13 @@ on:
     paths:
       - .github/workflows/build.yml
       - .github/build-debian.sh
+      - .github/prepare-debian-packaging.py
       - mesa-grate.patch
   pull_request:
     paths:
       - .github/workflows/build.yml
       - .github/build-debian.sh
+      - .github/prepare-debian-packaging.py
       - mesa-grate.patch
   workflow_dispatch:
 
