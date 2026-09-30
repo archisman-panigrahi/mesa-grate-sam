@@ -25,6 +25,8 @@ mkdir -p /build
 git clone --filter=blob:none --no-checkout \
   https://gitlab.freedesktop.org/mesa/mesa.git /build/mesa
 git -C /build/mesa checkout --detach "$MESA_REF"
+git -C /build/mesa config user.name "Mesa grate build"
+git -C /build/mesa config user.email mesa-grate@users.noreply.github.com
 git -C /build/mesa am --3way --keep-non-patch < /src/mesa-grate.patch
 
 git clone --depth=1 --branch "$DEBIAN_PACKAGING_BRANCH" \
